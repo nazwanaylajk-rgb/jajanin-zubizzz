@@ -335,8 +335,8 @@
           <div class="receipt">
             <div><strong>Instruksi Transfer Bank</strong></div>
             <div style="margin-top:8px">Silakan transfer ke rekening berikut:</div>
-            <div style="margin-top:6px; font-weight:700">BNI • 1234567890 • a.n. Toko Demo</div>
-            <div style="margin-top:8px; color:var(--muted)">Setelah transfer, konfirmasi manual (demo).</div>
+            <div style="margin-top:6px; font-weight:700">Seabank • 901642410904 • a.n. NAZWA NAYLA</div>
+            <div style="margin-top:8px; color:var(--muted)">Setelah transfer, konfirmasi manual (Zua).</div>
           </div>
         `;
       } else if(method==='card'){
@@ -351,7 +351,9 @@
         paymentForms.innerHTML = `
           <div class="receipt">
             <div><strong>E-Wallet</strong></div>
-            <div style="margin-top:8px">Pilih e-wallet dan lakukan konfirmasi di aplikasi e-walletmu. (Demo: kode pembayaran akan muncul)</div>
+            <div style="margin-top:8px">Pilih e-wallet dan lakukan konfirmasi di aplikasi E-Wallet. (Jajanin: kode pembayaran akan muncul)</div>
+            <div style="margin-top:6px; font-weight:700"> GOPAY • 0895324080651 • a.n. NAZWA NAYLA</div>
+            <div style="margin-top:8px; color:var(--muted)">Setelah transfer, konfirmasi manual (Zua).</div>
             <div style="margin-top:6px; font-weight:700">Kode: PAY-`+Date.now().toString().slice(-6)+`</div>
           </div>
         `;
@@ -388,7 +390,7 @@
         const exp = document.getElementById('card-exp')?.value||'';
         const cvc = document.getElementById('card-cvc')?.value||'';
         const name = document.getElementById('card-name')?.value||'';
-        if(num.length<12 || cvc.length<3 || !name){ alert('Masukkan detail kartu yang valid (ini demo).'); return; }
+        if(num.length<12 || cvc.length<3 || !name){ alert('Masukkan detail kartu yang valid (ini zua).'); return; }
       }
 
       // simulate processing
@@ -400,7 +402,7 @@
         const total = keys.reduce((s,k)=>s+cart[k].qty*cart[k].price,0);
         let payInfo = '';
         if(selectedPayment==='bank'){
-          payInfo = 'Silakan transfer ke rekening: BNI 1234567890 a.n. Toko Demo.';
+          payInfo = 'Silakan transfer ke rekening: Seabank • 901642410904 • a.n. NAZWA NAYLA.';
         } else if(selectedPayment==='card'){
           payInfo = 'Pembayaran kartu berhasil (simulasi).';
         } else if(selectedPayment==='ewallet'){
@@ -423,6 +425,3 @@
   </script>
 </body>
 </html>
-
-
-
