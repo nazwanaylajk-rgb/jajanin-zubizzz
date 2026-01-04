@@ -3,13 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-
-  <!-- Google Site Verification -->
-  <meta name="google-site-verification" content="ALijTGc0AuefQgBGnyi6gbNUCG5khKv7B9XbKKPc7mQ" />
-
   <title>Aplikasi Belanja - jajanin zubizz (Metode Pembayaran)</title>
-
   <style>
+    <meta name="google-site-verification" content="ALijTGc0AuefQgBGnyi6gbNUCG5khKv7B9XbKKPc7mQ" />
     :root{--bg:#f6f8fa;--card:#ffffff;--accent:#2563eb;--muted:#6b7280;--danger:#ef4444}
     *{box-sizing:border-box}
     body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin:0; background:var(--bg); color:#111}
@@ -19,6 +15,7 @@
     .layout{display:grid; grid-template-columns: 1fr 340px; gap:20px}
     @media(max-width:900px){.layout{grid-template-columns:1fr} .cart{order:-1}}
 
+    /* products */
     .controls{display:flex; gap:12px; margin-bottom:12px; align-items:center}
     .controls input, .controls select{padding:8px 10px; border-radius:8px; border:1px solid #e6e9ee; background:white}
     .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px}
@@ -31,7 +28,8 @@
     .card button{margin-top:10px; padding:8px 10px; border-radius:8px; border:0; background:var(--accent); color:white; cursor:pointer}
     .card small{color:var(--muted)}
 
-    .cart{background:linear-gradient(180deg,#fff,#fbfdff); padding:12px; border-radius:12px; box-shadow:0 6px 18px rgba(16,24,40,0.06)}
+    /* cart */
+    .cart{background:linear-gradient(180deg,#fff,#fbfdff); padding:12px; border-radius:12px; box-shadow:0 6px 18px rgba(16,24,40,0.06); height:fit-content}
     .cart h2{margin:0 0 8px 0}
     .cart-list{max-height:360px; overflow:auto; margin-bottom:12px}
     .cart-item{display:flex; gap:10px; align-items:center; padding:8px 4px; border-bottom:1px dashed #eef2ff}
@@ -43,16 +41,389 @@
     .checkout button{padding:10px 12px; border-radius:10px; border:0; background:var(--accent); color:white}
     .clear{background:#f3f4f6; color:#111}
 
-    footer{text-align:center; padding:18px; color:var(--muted)}
+    footer{padding:18px 20px; text-align:center; color:var(--muted)}
 
+    /* small helpers */
     .pill{background:#eef2ff; color:#1e3a8a; padding:4px 8px; border-radius:999px; font-size:12px}
-    .nodata{text-align:center; padding:36px; color:var(--muted)}
+    .nodata{padding:36px; text-align:center; color:var(--muted)}
 
-    .modal-backdrop{position:fixed; inset:0; background:rgba(2,6,23,0.6); display:none; align-items:center; justify-content:center}
-    .modal{width:520px; background:white; border-radius:12px; padding:16px}
+    /* modal */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(2,6,23,0.6); display:none; align-items:center; justify-content:center; z-index:60}
+    .modal{width:520px; max-width:94%; background:var(--card); border-radius:12px; padding:16px; box-shadow:0 8px 40px rgba(2,6,23,0.4)}
+    .modal h3{margin-top:0}
+    .payment-list{display:flex; flex-direction:column; gap:8px; margin-bottom:12px}
+    .payment-item{display:flex; align-items:center; gap:12px; padding:10px; border-radius:10px; border:1px solid #eef2ff; cursor:pointer}
+    .payment-item input{display:none}
+    .payment-item.selected{border-color:var(--accent); box-shadow:0 6px 18px rgba(37,99,235,0.08)}
+    .pay-actions{display:flex; gap:8px; justify-content:flex-end}
+    .btn{padding:8px 12px; border-radius:8px; border:0; cursor:pointer}
+    .btn.primary{background:var(--accent); color:white}
+    .btn.ghost{background:#f3f4f6}
+
+    .receipt{background:#f8fafc; padding:10px; border-radius:8px; margin-top:12px}
   </style>
 </head>
-
 <body>
+  <header>
+    <h1>🛍️ Toko jajanin zubizz — Aplikasi Belanja (Pembayaran)</h1>
+    <div class="pill" id="cart-count">Keranjang: 0</div>
+  </header>
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-YLFRKZLFS4"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-YLFRKZLFS4');
+</script>
+
+  <main class="container">
+    <div class="layout">
+      <section>
+        <div class="controls">
+          <input id="search" placeholder="Cari produk..." />
+          <select id="category">
+            <option value="">Semua Kategori</option>
+          </select>
+          <select id="sort">
+            <option value="default">Urutkan</option>
+            <option value="price_asc">Harga naik</option>
+            <option value="price_desc">Harga turun</option>
+          </select>
+        </div>
+
+        <div id="product-grid" class="grid"></div>
+      </section>
+
+      <aside class="cart" id="cart">
+        <h2>Keranjang</h2>
+        <div class="cart-list" id="cart-list"></div>
+        <div class="checkout">
+          <div>
+            <div>Total:</div>
+            <div style="font-weight:800; font-size:18px" id="cart-total">Rp0</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <button id="checkout-btn">Checkout</button>
+            <button id="clear-btn" class="clear">Kosongkan</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div style="margin-top:18px; background:var(--card); padding:12px; border-radius:10px">
+      <h3>Contoh Pemesanan</h3>
+      <p class="nodata">Pilih produk lalu klik <strong>Tambah ke Keranjang</strong>. Data disimpan di <em>localStorage</em> sehingga akan tetap ada saat kamu reload.</p>
+    </div>
+  </main>
+
+  <footer>
+    Dibuat dengan ❤️ — Buka file ini di VS Code atau browser untuk mencoba.
+  </footer>
+
+  <!-- modal payment -->
+  <div class="modal-backdrop" id="modal-pay">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>Pilih Metode Pembayaran</h3>
+      <div class="payment-list" id="payment-list">
+        <label class="payment-item" data-method="cod">
+          <input type="radio" name="pay" value="cod">
+          <div style="font-weight:700">Bayar di Tempat (COD)</div>
+          <div style="margin-left:auto; color:var(--muted)">Bayar saat barang diterima</div>
+        </label>
+
+        <label class="payment-item" data-method="bank">
+          <input type="radio" name="pay" value="bank">
+          <div style="font-weight:700">Transfer Bank</div>
+          <div style="margin-left:auto; color:var(--muted)">Instruksi akan ditampilkan</div>
+        </label>
+
+        <label class="payment-item" data-method="card">
+          <input type="radio" name="pay" value="card">
+          <div style="font-weight:700">Kartu Kredit / Debit</div>
+          <div style="margin-left:auto; color:var(--muted)">Masukkan detail kartu (jajanin zubizz)</div>
+        </label>
+
+        <label class="payment-item" data-method="ewallet">
+          <input type="radio" name="pay" value="ewallet">
+          <div style="font-weight:700">E-Wallet (OVO/GoPay)</div>
+          <div style="margin-left:auto; color:var(--muted)">Pindai kode atau konfirmasi</div>
+        </label>
+      </div>
+
+      <div id="payment-forms"></div>
+
+      <div class="pay-actions">
+        <button class="btn ghost" id="cancel-pay">Batal</button>
+        <button class="btn primary" id="confirm-pay">Konfirmasi & Bayar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // sample products
+    const PRODUCTS = [
+      {id:1, title:'Nyekerin Crispy bizz', price:10000, category:'Ceker Saus Lava', img:'nyekerin.jpg'},
+      {id:2, title:'Jelly Milky Mouu', price:6000, category:'Minuman Jelly', img:'jelly.jpg'},
+      {id:3, title:'Pangsit Chili Oil', price:10000, category:'Pangsit Chili Oil', img:'pangsit.jpg'},
+      {id:4, title:'Basreng Basah', price:185000, category:'Basreng Daun Jeruk', img:'https://via.placeholder.com/400x300?text=Ransel'},
+      
+    ];
+
+    // localStorage key
+    const STORAGE_KEY = 'jajaninzubizz_toko_cart_v1';
+
+    // DOM refs
+    const grid = document.getElementById('product-grid');
+    const cartList = document.getElementById('cart-list');
+    const cartCount = document.getElementById('cart-count');
+    const cartTotalEl = document.getElementById('cart-total');
+    const searchEl = document.getElementById('search');
+    const categoryEl = document.getElementById('category');
+    const sortEl = document.getElementById('sort');
+    const checkoutBtn = document.getElementById('checkout-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    // payment modal refs
+    const modal = document.getElementById('modal-pay');
+    const paymentList = document.getElementById('payment-list');
+    const paymentForms = document.getElementById('payment-forms');
+    const cancelPay = document.getElementById('cancel-pay');
+    const confirmPay = document.getElementById('confirm-pay');
+
+    // state
+    let cart = loadCart();
+    let products = PRODUCTS.slice();
+    let selectedPayment = null;
+
+    // initialize UI
+    function init(){
+      populateCategories();
+      renderProducts(products);
+      renderCart();
+      attachEvents();
+      attachPaymentSelection();
+    }
+
+    function populateCategories(){
+      const cats = Array.from(new Set(PRODUCTS.map(p=>p.category)));
+      cats.forEach(c=>{ const opt = document.createElement('option'); opt.value = c; opt.textContent = c; categoryEl.appendChild(opt); });
+    }
+
+    function attachEvents(){
+      searchEl.addEventListener('input', onFilterChange);
+      categoryEl.addEventListener('change', onFilterChange);
+      sortEl.addEventListener('change', onSortChange);
+      clearBtn.addEventListener('click', ()=>{ if(confirm('Kosongkan keranjang?')){ cart = {}; saveCart(); renderCart(); } });
+      checkoutBtn.addEventListener('click', openPaymentModal);
+      cancelPay.addEventListener('click', closePaymentModal);
+      confirmPay.addEventListener('click', onConfirmPayment);
+      // close modal when click outside
+      modal.addEventListener('click', (e)=>{ if(e.target===modal) closePaymentModal(); });
+    }
+
+    function onFilterChange(){
+      const q = searchEl.value.trim().toLowerCase();
+      const cat = categoryEl.value;
+      let out = PRODUCTS.filter(p=> p.title.toLowerCase().includes(q) );
+      if(cat) out = out.filter(p=>p.category===cat);
+      renderProducts(out);
+    }
+    function onSortChange(){
+      const val = sortEl.value;
+      let out = Array.from(grid.dataset.current ? JSON.parse(grid.dataset.current) : products);
+      if(val==='price_asc') out.sort((a,b)=>a.price-b.price);
+      else if(val==='price_desc') out.sort((a,b)=>b.price-a.price);
+      renderProducts(out);
+    }
+
+    function renderProducts(list){
+      grid.innerHTML = '';
+      grid.dataset.current = JSON.stringify(list);
+      if(list.length===0){ grid.innerHTML = '<div class="nodata">Tidak ada produk</div>'; return; }
+      list.forEach(p=>{
+        const el = document.createElement('div'); el.className='card';
+        el.innerHTML = `
+          <div class="thumb"><img src="${p.img}" alt="${p.title}" loading="lazy"></div>
+          <div class="meta">
+            <div class="title">${p.title}</div>
+            <small class="muted">${p.category}</small>
+            <div class="price">Rp${formatPrice(p.price)}</div>
+          </div>
+          <button data-id="${p.id}">Tambah ke Keranjang</button>
+        `;
+        el.querySelector('button').addEventListener('click', ()=>addToCart(p.id));
+        grid.appendChild(el);
+      });
+    }
+
+    function addToCart(id){
+      const p = PRODUCTS.find(x=>x.id===id); if(!p) return;
+      if(!cart[id]) cart[id] = {...p, qty:0};
+      cart[id].qty += 1;
+      saveCart(); renderCart();
+    }
+
+    function renderCart(){
+      cartList.innerHTML = '';
+      const keys = Object.keys(cart);
+      if(keys.length===0){ cartList.innerHTML = '<div class="nodata">Keranjang kosong</div>'; updateCartUI(); return; }
+      keys.forEach(k=>{
+        const it = cart[k];
+        const div = document.createElement('div'); div.className='cart-item';
+        div.innerHTML = `
+          <img src="${it.img}" alt="${it.title}">
+          <div class="info">
+            <div style="font-weight:700">${it.title}</div>
+            <div style="font-size:13px; color:var(--muted)">Rp${formatPrice(it.price)} × ${it.qty} = <strong>Rp${formatPrice(it.price*it.qty)}</strong></div>
+          </div>
+          <div class="qty">
+            <button data-action="dec" data-id="${it.id}">−</button>
+            <div>${it.qty}</div>
+            <button data-action="inc" data-id="${it.id}">+</button>
+            <button data-action="remove" data-id="${it.id}" title="Hapus" style="margin-left:6px; border:0; background:transparent; cursor:pointer; color:var(--danger)">🗑️</button>
+          </div>
+        `;
+        cartList.appendChild(div);
+      });
+
+      // attach qty handlers
+      cartList.querySelectorAll('button').forEach(btn=>{
+        const action = btn.dataset.action; const id = btn.dataset.id;
+        if(action==='inc') btn.addEventListener('click', ()=>{ cart[id].qty+=1; saveCart(); renderCart(); });
+        if(action==='dec') btn.addEventListener('click', ()=>{ cart[id].qty = Math.max(1, cart[id].qty-1); saveCart(); renderCart(); });
+        if(action==='remove') btn.addEventListener('click', ()=>{ if(confirm('Hapus item dari keranjang?')){ delete cart[id]; saveCart(); renderCart(); } });
+      });
+
+      updateCartUI();
+    }
+
+    function updateCartUI(){
+      const keys = Object.keys(cart);
+      const totalItems = keys.reduce((s,k)=>s+cart[k].qty,0);
+      const totalPrice = keys.reduce((s,k)=>s+cart[k].qty*cart[k].price,0);
+      cartCount.textContent = `Keranjang: ${totalItems}`;
+      cartTotalEl.textContent = `Rp${formatPrice(totalPrice)}`;
+    }
+
+    function saveCart(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+    }
+    function loadCart(){
+      try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : {}; }catch(e){ return {}; }
+    }
+
+    function formatPrice(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+    // === Payment modal logic ===
+    function attachPaymentSelection(){
+      paymentList.querySelectorAll('.payment-item').forEach(el=>{
+        el.addEventListener('click', ()=>{
+          paymentList.querySelectorAll('.payment-item').forEach(x=>x.classList.remove('selected'));
+          el.classList.add('selected');
+          const method = el.dataset.method;
+          selectedPayment = method;
+          renderPaymentForm(method);
+        });
+      });
+    }
+
+    function renderPaymentForm(method){
+      paymentForms.innerHTML = '';
+      if(method==='bank'){
+        paymentForms.innerHTML = `
+          <div class="receipt">
+            <div><strong>Instruksi Transfer Bank</strong></div>
+            <div style="margin-top:8px">Silakan transfer ke rekening berikut:</div>
+            <div style="margin-top:6px; font-weight:700">Seabank • 901642410904 • a.n. NAZWA NAYLA</div>
+            <div style="margin-top:8px; color:var(--muted)">Setelah transfer, konfirmasi manual (Zua).</div>
+          </div>
+        `;
+      } else if(method==='card'){
+        paymentForms.innerHTML = `
+          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px">
+            <input id="card-number" placeholder="Nomor Kartu (16 digit)" maxlength="19" />
+            <div style="display:flex; gap:8px"><input id="card-exp" placeholder="MM/YY" style="flex:1" /><input id="card-cvc" placeholder="CVC" style="width:120px" maxlength="4" /></div>
+            <input id="card-name" placeholder="Nama pada kartu" />
+          </div>
+        `;
+      } else if(method==='ewallet'){
+        paymentForms.innerHTML = `
+          <div class="receipt">
+            <div><strong>E-Wallet</strong></div>
+            <div style="margin-top:8px">Pilih e-wallet dan lakukan konfirmasi di aplikasi E-Wallet. (Jajanin: kode pembayaran akan muncul)</div>
+            <div style="margin-top:6px; font-weight:700"> GOPAY • 0895324080651 • a.n. NAZWA NAYLA</div>
+            <div style="margin-top:8px; color:var(--muted)">Setelah transfer, konfirmasi manual (Zua).</div>
+            <div style="margin-top:6px; font-weight:700">Kode: PAY-`+Date.now().toString().slice(-6)+`</div>
+          </div>
+        `;
+      } else if(method==='cod'){
+        paymentForms.innerHTML = `
+          <div class="receipt">
+            <div><strong>Bayar di Tempat (COD)</strong></div>
+            <div style="margin-top:8px; color:var(--muted)">Pembayaran dilakukan saat kurir menyerahkan barang.</div>
+          </div>
+        `;
+      }
+    }
+
+    function openPaymentModal(){
+      const keys = Object.keys(cart); if(keys.length===0){ alert('Keranjang kosong. Tambahkan produk terlebih dahulu.'); return; }
+      // default select first method
+      paymentList.querySelectorAll('.payment-item').forEach(x=>x.classList.remove('selected'));
+      const first = paymentList.querySelector('.payment-item');
+      if(first) first.classList.add('selected');
+      selectedPayment = first ? first.dataset.method : null;
+      renderPaymentForm(selectedPayment);
+      modal.style.display = 'flex';
+    }
+
+    function closePaymentModal(){
+      modal.style.display = 'none';
+    }
+
+    function onConfirmPayment(){
+      if(!selectedPayment){ alert('Pilih metode pembayaran terlebih dahulu.'); return; }
+      // simple validation for card
+      if(selectedPayment==='card'){
+        const num = document.getElementById('card-number')?.value?.replace(/\s+/g,'')||'';
+        const exp = document.getElementById('card-exp')?.value||'';
+        const cvc = document.getElementById('card-cvc')?.value||'';
+        const name = document.getElementById('card-name')?.value||'';
+        if(num.length<12 || cvc.length<3 || !name){ alert('Masukkan detail kartu yang valid (ini zua).'); return; }
+      }
+
+      // simulate processing
+      confirmPay.disabled = true; confirmPay.textContent = 'Memproses...';
+      setTimeout(()=>{
+        // create order summary
+        const keys = Object.keys(cart);
+        const lines = keys.map(k=>{ const it=cart[k]; return `${it.title} x ${it.qty} = Rp${formatPrice(it.price*it.qty)}`; }).join('\n');
+        const total = keys.reduce((s,k)=>s+cart[k].qty*cart[k].price,0);
+        let payInfo = '';
+        if(selectedPayment==='bank'){
+          payInfo = 'Silakan transfer ke rekening: Seabank • 901642410904 • a.n. NAZWA NAYLA.';
+        } else if(selectedPayment==='card'){
+          payInfo = 'Pembayaran kartu berhasil (simulasi).';
+        } else if(selectedPayment==='ewallet'){
+          payInfo = 'Pembayaran e-wallet berhasil (simulasi).';
+        } else if(selectedPayment==='cod'){
+          payInfo = 'Pilih Bayar di Tempat. Siapkan uang sesuai total saat diterima.';
+        }
+
+        const receipt = `=== RINCIAN PESANAN ===\n${lines}\n\nTotal: Rp${formatPrice(total)}\nMetode: ${selectedPayment.toUpperCase()}\n\n${payInfo}`;
+        closePaymentModal();
+        confirmPay.disabled = false; confirmPay.textContent = 'Konfirmasi & Bayar';
+        alert(receipt);
+        // clear cart
+        cart = {}; saveCart(); renderCart();
+      }, 900);
+    }
+
+    // start
+    init();
+  </script>
 </body>
 </html>
+
